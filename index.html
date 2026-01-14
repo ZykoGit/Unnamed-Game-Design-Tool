@@ -20,6 +20,7 @@
     color: white;
     padding: 10px;
     box-sizing: border-box;
+    overflow-y: auto;
   }
 
   #sidebar button {
@@ -28,6 +29,13 @@
     padding: 8px;
     font-size: 14px;
     cursor: pointer;
+  }
+
+  #sidebar input {
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 5px;
+    box-sizing: border-box;
   }
 
   /* Top bar */
@@ -70,11 +78,27 @@
     <h3>Objects</h3>
     <button id="addBox">Add Box</button>
     <button id="deleteSelected">Delete Selected</button>
+
+    <h3>Properties</h3>
+    <label>X:</label>
+    <input id="propX" type="number">
+
+    <label>Y:</label>
+    <input id="propY" type="number">
+
+    <label>Width:</label>
+    <input id="propW" type="number">
+
+    <label>Height:</label>
+    <input id="propH" type="number">
+
+    <label>Color:</label>
+    <input id="propColor" type="text">
   </div>
 
   <!-- Main area -->
   <div id="main">
-    <div id="topbar">Unnamed Game Editor v0.3</div>
+    <div id="topbar">Unnamed Game Editor v0.4</div>
 
     <div id="canvasContainer">
       <canvas id="gameCanvas" width="600" height="400"></canvas>
@@ -90,6 +114,13 @@
   let offsetX = 0;
   let offsetY = 0;
   let dragging = false;
+
+  // UI elements
+  const propX = document.getElementById("propX");
+  const propY = document.getElementById("propY");
+  const propW = document.getElementById("propW");
+  const propH = document.getElementById("propH");
+  const propColor = document.getElementById("propColor");
 
   // Add a box
   document.getElementById("addBox").onclick = () => {
@@ -108,9 +139,35 @@
     if (selected) {
       objects = objects.filter(obj => obj !== selected);
       selected = null;
+      updateProperties();
       draw();
     }
   };
+
+  // Update properties panel
+  function updateProperties() {
+    if (!selected) {
+      propX.value = "";
+      propY.value = "";
+      propW.value = "";
+      propH.value = "";
+      propColor.value = "";
+      return;
+    }
+
+    propX.value = selected.x;
+    propY.value = selected.y;
+    propW.value = selected.w;
+    propH.value = selected.h;
+    propColor.value = selected.color;
+  }
+
+  // When user edits properties
+  propX.oninput = () => { if (selected) { selected.x = Number(propX.value); draw(); } };
+  propY.oninput = () => { if (selected) { selected.y = Number(propY.value); draw(); } };
+  propW.oninput = () => { if (selected) { selected.w = Number(propW.value); draw(); } };
+  propH.oninput = () => { if (selected) { selected.h = Number(propH.value); draw(); } };
+  propColor.oninput = () => { if (selected) { selected.color = propColor.value; draw(); } };
 
   // Draw everything
   function draw() {
@@ -147,6 +204,7 @@
       }
     }
 
+    updateProperties();
     draw();
   });
 
@@ -161,6 +219,7 @@
     selected.x = mx - offsetX;
     selected.y = my - offsetY;
 
+    updateProperties();
     draw();
   });
 
