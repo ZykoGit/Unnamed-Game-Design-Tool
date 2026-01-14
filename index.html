@@ -91,23 +91,30 @@
     <button id="deleteSelected">Delete Selected</button>
 
     <h3>Properties</h3>
-    <label>X:</label>
-    <input id="propX" type="number">
 
-    <label>Y:</label>
-    <input id="propY" type="number">
+    <div id="groupCommon">
+      <label>X:</label>
+      <input id="propX" type="number">
 
-    <label>Width (display):</label>
-    <input id="propW" type="number">
+      <label>Y:</label>
+      <input id="propY" type="number">
 
-    <label>Height (display):</label>
-    <input id="propH" type="number">
+      <label>Width (display):</label>
+      <input id="propW" type="number">
 
-    <label>Color (for boxes):</label>
-    <input id="propColor" type="text">
+      <label>Height (display):</label>
+      <input id="propH" type="number">
+    </div>
 
-    <label>Scale (for images):</label>
-    <input id="propScale" type="number" step="0.1">
+    <div id="groupBox">
+      <label>Color (for boxes):</label>
+      <input id="propColor" type="text">
+    </div>
+
+    <div id="groupImage">
+      <label>Scale (for images):</label>
+      <input id="propScale" type="number" step="0.1">
+    </div>
   </div>
 
   <!-- Hidden file input for images -->
@@ -115,10 +122,10 @@
 
   <!-- Main area -->
   <div id="main">
-    <div id="topbar">Unnamed Game Editor v0.5</div>
+    <div id="topbar">Unnamed Game Editor v0.6</div>
 
     <div id="canvasContainer">
-      <canvas id="gameCanvas" width="600" height="400"></canvas>
+      <canvas id="gameCanvas" width="800" height="500"></canvas>
     </div>
   </div>
 
@@ -128,11 +135,22 @@
 
   let objects = [];
   let selected = null;
+
+  let dragging = false;
+  let dragMode = null; // "move", "pan", "resize"
   let offsetX = 0;
   let offsetY = 0;
-  let dragging = false;
+
+  let resizeHandle = null; // "tl","tr","bl","br"
+  let resizeStart = null;
 
   const TARGET_SIZE = 128; // largest side at scale 1
+  const HANDLE_SIZE = 10;  // in screen pixels
+
+  // camera
+  let cameraX = 0;
+  let cameraY = 0;
+  let zoom = 1;
 
   // UI elements
   const propX = document.getElementById("propX");
@@ -142,16 +160,35 @@
   const propColor = document.getElementById("propColor");
   const propScale = document.getElementById("propScale");
 
+  const groupCommon = document.getElementById("groupCommon");
+  const groupBox = document.getElementById("groupBox");
+  const groupImage = document.getElementById("groupImage");
+
   const fileInput = document.getElementById("fileInput");
+
+  // Helpers: world <-> screen
+  function worldToScreen(x, y) {
+    return {
+      x: (x - cameraX) * zoom,
+      y: (y - cameraY) * zoom
+    };
+  }
+
+  function screenToWorld(x, y) {
+    return {
+      x: x / zoom + cameraX,
+      y: y / zoom + cameraY
+    };
+  }
 
   // Add a box
   document.getElementById("addBox").onclick = () => {
     objects.push({
       type: "box",
-      x: Math.random() * 500,
-      y: Math.random() * 300,
-      w: 50,
-      h: 50,
+      x: 100,
+      y: 100,
+      w: 80,
+      h: 80,
       color: "#" + Math.floor(Math.random()*16777215).toString(16)
     });
     draw();
@@ -175,7 +212,6 @@
         const realW = img.width;
         const realH = img.height;
 
-        // keep aspect ratio, largest side becomes TARGET_SIZE at scale 1
         const maxSide = Math.max(realW, realH);
         const baseScale = TARGET_SIZE / maxSide;
 
@@ -184,8 +220,8 @@
 
         objects.push({
           type: "image",
-          x: Math.random() * (canvas.width - displayW),
-          y: Math.random() * (canvas.height - displayH),
+          x: 100,
+          y: 100,
           w: displayW,
           h: displayH,
           realW: realW,
@@ -212,7 +248,7 @@
     }
   };
 
-  // Update properties panel
+  // Update properties panel + visibility
   function updateProperties() {
     if (!selected) {
       propX.value = "";
@@ -221,8 +257,14 @@
       propH.value = "";
       propColor.value = "";
       propScale.value = "";
+
+      groupCommon.style.display = "none";
+      groupBox.style.display = "none";
+      groupImage.style.display = "none";
       return;
     }
+
+    groupCommon.style.display = "block";
 
     propX.value = Math.round(selected.x);
     propY.value = Math.round(selected.y);
@@ -230,9 +272,13 @@
     propH.value = Math.round(selected.h);
 
     if (selected.type === "box") {
+      groupBox.style.display = "block";
+      groupImage.style.display = "none";
       propColor.value = selected.color || "";
       propScale.value = "";
     } else if (selected.type === "image") {
+      groupBox.style.display = "none";
+      groupImage.style.display = "block";
       propColor.value = "";
       propScale.value = selected.scale.toFixed(2);
     }
@@ -259,7 +305,6 @@
       if (selected.type === "box") {
         selected.w = newW;
       } else if (selected.type === "image") {
-        // change scale based on width, keep aspect ratio
         const scaleFromW = newW / (selected.realW * selected.baseScale);
         selected.scale = scaleFromW;
         selected.w = selected.realW * selected.baseScale * selected.scale;
@@ -277,7 +322,6 @@
       if (selected.type === "box") {
         selected.h = newH;
       } else if (selected.type === "image") {
-        // change scale based on height, keep aspect ratio
         const scaleFromH = newH / (selected.realH * selected.baseScale);
         selected.scale = scaleFromH;
         selected.w = selected.realW * selected.baseScale * selected.scale;
@@ -313,6 +357,10 @@
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    ctx.save();
+    ctx.translate(-cameraX * zoom, -cameraY * zoom);
+    ctx.scale(zoom, zoom);
+
     for (let obj of objects) {
       if (obj.type === "box") {
         ctx.fillStyle = obj.color;
@@ -323,29 +371,109 @@
 
       if (obj === selected) {
         ctx.strokeStyle = "yellow";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2 / zoom;
         ctx.strokeRect(obj.x, obj.y, obj.w, obj.h);
       }
     }
+
+    ctx.restore();
+
+    if (selected) {
+      drawHandles(selected);
+    }
   }
 
-  // Mouse down: select object
+  function drawHandles(obj) {
+    const corners = getObjectCornersScreen(obj);
+    ctx.save();
+    ctx.fillStyle = "cyan";
+    for (let c of corners) {
+      ctx.fillRect(
+        c.x - HANDLE_SIZE / 2,
+        c.y - HANDLE_SIZE / 2,
+        HANDLE_SIZE,
+        HANDLE_SIZE
+      );
+    }
+    ctx.restore();
+  }
+
+  function getObjectCornersScreen(obj) {
+    const tl = worldToScreen(obj.x, obj.y);
+    const tr = worldToScreen(obj.x + obj.w, obj.y);
+    const bl = worldToScreen(obj.x, obj.y + obj.h);
+    const br = worldToScreen(obj.x + obj.w, obj.y + obj.h);
+    return [tl, tr, bl, br];
+  }
+
+  function hitTestHandle(obj, mx, my) {
+    if (!obj) return null;
+    const corners = getObjectCornersScreen(obj);
+    const names = ["tl", "tr", "bl", "br"];
+    for (let i = 0; i < corners.length; i++) {
+      const c = corners[i];
+      if (
+        mx >= c.x - HANDLE_SIZE / 2 &&
+        mx <= c.x + HANDLE_SIZE / 2 &&
+        my >= c.y - HANDLE_SIZE / 2 &&
+        my <= c.y + HANDLE_SIZE / 2
+      ) {
+        return names[i];
+      }
+    }
+    return null;
+  }
+
+  // Mouse events
   canvas.addEventListener("mousedown", (e) => {
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
 
+    if (e.button === 2) {
+      dragMode = "pan";
+      dragging = true;
+      offsetX = mx;
+      offsetY = my;
+      return;
+    }
+
+    if (e.button !== 0) return;
+
+    const handle = hitTestHandle(selected, mx, my);
+    if (handle && selected) {
+      dragMode = "resize";
+      dragging = true;
+      resizeHandle = handle;
+      const worldPos = screenToWorld(mx, my);
+      resizeStart = {
+        mouseX: worldPos.x,
+        mouseY: worldPos.y,
+        x: selected.x,
+        y: selected.y,
+        w: selected.w,
+        h: selected.h
+      };
+      return;
+    }
+
+    const worldPos = screenToWorld(mx, my);
+    const wx = worldPos.x;
+    const wy = worldPos.y;
+
     selected = null;
 
-    // select topmost object under mouse
     for (let i = objects.length - 1; i >= 0; i--) {
       const obj = objects[i];
-      if (mx >= obj.x && mx <= obj.x + obj.w &&
-          my >= obj.y && my <= obj.y + obj.h) {
+      if (
+        wx >= obj.x && wx <= obj.x + obj.w &&
+        wy >= obj.y && wy <= obj.y + obj.h
+      ) {
         selected = obj;
-        offsetX = mx - obj.x;
-        offsetY = my - obj.y;
+        dragMode = "move";
         dragging = true;
+        offsetX = wx - obj.x;
+        offsetY = wy - obj.y;
         break;
       }
     }
@@ -354,30 +482,158 @@
     draw();
   });
 
-  // Mouse move: drag selected object
   canvas.addEventListener("mousemove", (e) => {
-    if (!dragging || !selected) return;
+    if (!dragging) return;
 
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
 
-    selected.x = mx - offsetX;
-    selected.y = my - offsetY;
+    if (dragMode === "pan") {
+      const dx = (mx - offsetX) / zoom;
+      const dy = (my - offsetY) / zoom;
+      cameraX -= dx;
+      cameraY -= dy;
+      offsetX = mx;
+      offsetY = my;
+      draw();
+      return;
+    }
 
-    updateProperties();
-    draw();
+    const worldPos = screenToWorld(mx, my);
+    const wx = worldPos.x;
+    const wy = worldPos.y;
+
+    if (dragMode === "move" && selected) {
+      selected.x = wx - offsetX;
+      selected.y = wy - offsetY;
+      updateProperties();
+      draw();
+    } else if (dragMode === "resize" && selected && resizeStart) {
+      resizeObjectWithHandle(selected, resizeHandle, wx, wy);
+      updateProperties();
+      draw();
+    }
   });
 
-  // Mouse up: stop dragging
   canvas.addEventListener("mouseup", () => {
     dragging = false;
+    dragMode = null;
+    resizeHandle = null;
+    resizeStart = null;
   });
 
   canvas.addEventListener("mouseleave", () => {
     dragging = false;
+    dragMode = null;
+    resizeHandle = null;
+    resizeStart = null;
   });
 
+  canvas.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+  });
+
+  // Zoom with wheel (toward cursor)
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    const before = screenToWorld(mx, my);
+
+    const zoomFactor = 1.1;
+    if (e.deltaY < 0) {
+      zoom *= zoomFactor;
+    } else {
+      zoom /= zoomFactor;
+    }
+    zoom = Math.max(0.25, Math.min(zoom, 4));
+
+    const after = screenToWorld(mx, my);
+    cameraX += before.x - after.x;
+    cameraY += before.y - after.y;
+
+    draw();
+  }, { passive: false });
+
+  function resizeObjectWithHandle(obj, handle, wx, wy) {
+    const s = resizeStart;
+    let x = s.x;
+    let y = s.y;
+    let w = s.w;
+    let h = s.h;
+
+    if (handle === "tl") {
+      const newX = wx;
+      const newY = wy;
+      w = (s.x + s.w) - newX;
+      h = (s.y + s.h) - newY;
+      x = newX;
+      y = newY;
+    } else if (handle === "tr") {
+      const newX = wx;
+      const newY = wy;
+      w = newX - s.x;
+      h = (s.y + s.h) - newY;
+      x = s.x;
+      y = newY;
+    } else if (handle === "bl") {
+      const newX = wx;
+      const newY = wy;
+      w = (s.x + s.w) - newX;
+      h = newY - s.y;
+      x = newX;
+      y = s.y;
+    } else if (handle === "br") {
+      const newX = wx;
+      const newY = wy;
+      w = newX - s.x;
+      h = newY - s.y;
+      x = s.x;
+      y = s.y;
+    }
+
+    const minSize = 5;
+    if (obj.type === "box") {
+      if (w < 0) { x += w; w = -w; }
+      if (h < 0) { y += h; h = -h; }
+      w = Math.max(minSize, w);
+      h = Math.max(minSize, h);
+      obj.x = x;
+      obj.y = y;
+      obj.w = w;
+      obj.h = h;
+    } else if (obj.type === "image") {
+      if (w < 0) { x += w; w = -w; }
+      if (h < 0) { y += h; h = -h; }
+
+      const targetW = w;
+      const scaleFromW = targetW / (obj.realW * obj.baseScale);
+      let scale = Math.max(0.05, scaleFromW);
+
+      obj.scale = scale;
+      obj.w = obj.realW * obj.baseScale * obj.scale;
+      obj.h = obj.realH * obj.baseScale * obj.scale;
+
+      if (handle === "tl") {
+        obj.x = s.x + s.w - obj.w;
+        obj.y = s.y + s.h - obj.h;
+      } else if (handle === "tr") {
+        obj.x = s.x;
+        obj.y = s.y + s.h - obj.h;
+      } else if (handle === "bl") {
+        obj.x = s.x + s.w - obj.w;
+        obj.y = s.y;
+      } else if (handle === "br") {
+        obj.x = s.x;
+        obj.y = s.y;
+      }
+    }
+  }
+
+  updateProperties();
   draw();
 </script>
 
