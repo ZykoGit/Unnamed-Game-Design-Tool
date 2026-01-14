@@ -76,10 +76,12 @@
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d");
 
-  // Simple object list
   let objects = [];
+  let selected = null;
+  let offsetX = 0;
+  let offsetY = 0;
+  let dragging = false;
 
-  // Add a test object
   document.getElementById("addBox").onclick = () => {
     objects.push({
       x: Math.random() * 500,
@@ -91,18 +93,70 @@
     draw();
   };
 
-  // Draw everything
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     for (let obj of objects) {
       ctx.fillStyle = obj.color;
       ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
+
+      // highlight selected object
+      if (obj === selected) {
+        ctx.strokeStyle = "yellow";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(obj.x, obj.y, obj.w, obj.h);
+      }
     }
   }
 
+  // Detect click on object
+  canvas.addEventListener("mousedown", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    selected = null;
+
+    for (let obj of objects) {
+      if (mx >= obj.x && mx <= obj.x + obj.w &&
+          my >= obj.y && my <= obj.y + obj.h) {
+        selected = obj;
+        offsetX = mx - obj.x;
+        offsetY = my - obj.y;
+        dragging = true;
+        break;
+      }
+    }
+
+    draw();
+  });
+
+  // Drag object
+  canvas.addEventListener("mousemove", (e) => {
+    if (!dragging || !selected) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    selected.x = mx - offsetX;
+    selected.y = my - offsetY;
+
+    draw();
+  });
+
+  // Stop dragging
+  canvas.addEventListener("mouseup", () => {
+    dragging = false;
+  });
+
+  canvas.addEventListener("mouseleave", () => {
+    dragging = false;
+  });
+
   draw();
 </script>
+
 
 </body>
 </html>
