@@ -4,54 +4,174 @@
 <meta charset="UTF-8">
 <title>Unnamed Game Editor</title>
 
+<link rel="icon" type="image/png" href="favicon.png">
+
 <style>
+  :root {
+    --bg-main: #1e1e1e;
+    --bg-sidebar: #222;
+    --bg-topbar: #2b2b2b;
+    --bg-canvas: #333;
+    --text-main: #f5f5f5;
+    --accent: #4ea1ff;
+    --accent-soft: rgba(78, 161, 255, 0.15);
+    --border-soft: #444;
+    --button-bg: #333;
+    --button-bg-hover: #3d3d3d;
+    --button-border: #555;
+    --input-bg: #2a2a2a;
+    --input-border: #555;
+  }
+
+  body.light-theme {
+    --bg-main: #f4f4f4;
+    --bg-sidebar: #ffffff;
+    --bg-topbar: #e5e5e5;
+    --bg-canvas: #dcdcdc;
+    --text-main: #111;
+    --accent: #0078ff;
+    --accent-soft: rgba(0, 120, 255, 0.12);
+    --border-soft: #cccccc;
+    --button-bg: #ffffff;
+    --button-bg-hover: #f0f0f0;
+    --button-border: #bbbbbb;
+    --input-bg: #ffffff;
+    --input-border: #bbbbbb;
+  }
+
   body {
     margin: 0;
-    font-family: sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     display: flex;
     height: 100vh;
     overflow: hidden;
+    background: var(--bg-main);
+    color: var(--text-main);
   }
 
   /* Sidebar */
   #sidebar {
-    width: 240px;
-    background: #222;
-    color: white;
-    padding: 10px;
+    width: 260px;
+    background: var(--bg-sidebar);
+    color: var(--text-main);
+    padding: 12px;
     box-sizing: border-box;
     overflow-y: auto;
+    border-right: 1px solid var(--border-soft);
+  }
+
+  #sidebar h3 {
+    margin: 10px 0 6px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+  }
+
+  .sidebar-section {
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-soft);
   }
 
   #sidebar button {
     width: 100%;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     padding: 8px;
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
+    border-radius: 6px;
+    border: 1px solid var(--button-border);
+    background: var(--button-bg);
+    color: var(--text-main);
+    transition: background 0.15s, transform 0.05s, box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
   }
 
-  #sidebar input {
+  #sidebar button:hover {
+    background: var(--button-bg-hover);
+    box-shadow: 0 0 0 1px var(--accent-soft);
+  }
+
+  #sidebar button:active {
+    transform: translateY(1px);
+  }
+
+  #sidebar input[type="number"],
+  #sidebar input[type="text"] {
     width: 100%;
-    margin-bottom: 8px;
-    padding: 5px;
+    margin-bottom: 6px;
+    padding: 5px 6px;
     box-sizing: border-box;
+    border-radius: 4px;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text-main);
+    font-size: 12px;
   }
 
   #sidebar label {
-    font-size: 12px;
+    font-size: 11px;
     display: block;
+    margin-top: 4px;
+    margin-bottom: 2px;
+    opacity: 0.85;
+  }
+
+  #sidebar input[type="checkbox"] {
+    margin-right: 6px;
+  }
+
+  .small-note {
+    font-size: 11px;
+    opacity: 0.7;
     margin-top: 4px;
   }
 
   /* Top bar */
   #topbar {
     height: 40px;
-    background: #444;
-    color: white;
+    background: var(--bg-topbar);
+    color: var(--text-main);
     display: flex;
     align-items: center;
-    padding: 0 10px;
+    padding: 0 12px;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  #topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  #topbar-title {
+    font-weight: 600;
+  }
+
+  #topbar-version {
+    font-size: 11px;
+    opacity: 0.7;
+  }
+
+  #topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  #themeToggle {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--button-border);
+    background: var(--button-bg);
   }
 
   /* Main area */
@@ -64,19 +184,29 @@
   /* Canvas area */
   #canvasContainer {
     flex: 1;
-    background: #333;
+    background: var(--bg-canvas);
     display: flex;
     justify-content: center;
     align-items: center;
+    padding: 10px;
+    box-sizing: border-box;
   }
 
   canvas {
     background: #fff;
-    border: 2px solid #000;
+    border-radius: 8px;
+    border: 1px solid var(--border-soft);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
   }
 
   #fileInput {
     display: none;
+  }
+
+  #noSelection {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: 4px;
   }
 </style>
 </head>
@@ -85,35 +215,58 @@
 
   <!-- Sidebar -->
   <div id="sidebar">
-    <h3>Objects</h3>
-    <button id="addBox">Add Box</button>
-    <button id="addImage">Add Image (PNG)</button>
-    <button id="deleteSelected">Delete Selected</button>
-
-    <h3>Properties</h3>
-
-    <div id="groupCommon">
-      <label>X:</label>
-      <input id="propX" type="number">
-
-      <label>Y:</label>
-      <input id="propY" type="number">
-
-      <label>Width (display):</label>
-      <input id="propW" type="number">
-
-      <label>Height (display):</label>
-      <input id="propH" type="number">
+    <div class="sidebar-section">
+      <h3>Objects</h3>
+      <button id="addBox"><span>⬛</span><span>Add Box</span></button>
+      <button id="addImage"><span>🖼️</span><span>Add Image (PNG)</span></button>
+      <button id="deleteSelected"><span>🗑️</span><span>Delete Selected</span></button>
+      <label style="margin-top:8px; display:flex; align-items:center; font-size:11px;">
+        <input id="snapToggle" type="checkbox">
+        Snap to grid (16px)
+      </label>
+      <div class="small-note">
+        Right-click drag to pan • Scroll to zoom
+      </div>
     </div>
 
-    <div id="groupBox">
-      <label>Color (for boxes):</label>
-      <input id="propColor" type="text">
+    <div class="sidebar-section">
+      <h3>Properties</h3>
+
+      <div id="noSelection">No object selected.</div>
+
+      <div id="groupCommon">
+        <label>X:</label>
+        <input id="propX" type="number">
+
+        <label>Y:</label>
+        <input id="propY" type="number">
+
+        <label>Width (display):</label>
+        <input id="propW" type="number">
+
+        <label>Height (display):</label>
+        <input id="propH" type="number">
+      </div>
+
+      <div id="groupBox">
+        <label>Color (for boxes):</label>
+        <input id="propColor" type="text">
+      </div>
+
+      <div id="groupImage">
+        <label>Scale (for images):</label>
+        <input id="propScale" type="number" step="0.1">
+      </div>
     </div>
 
-    <div id="groupImage">
-      <label>Scale (for images):</label>
-      <input id="propScale" type="number" step="0.1">
+    <div class="sidebar-section">
+      <h3>Shortcuts</h3>
+      <div class="small-note">
+        Delete / Backspace: delete<br>
+        Ctrl+D: duplicate<br>
+        Ctrl+0: reset view<br>
+        Arrows: nudge (Shift = 10px)
+      </div>
     </div>
   </div>
 
@@ -122,7 +275,15 @@
 
   <!-- Main area -->
   <div id="main">
-    <div id="topbar">Unnamed Game Editor v0.6</div>
+    <div id="topbar">
+      <div id="topbar-left">
+        <span id="topbar-title">Unnamed Game Editor</span>
+        <span id="topbar-version">v0.7</span>
+      </div>
+      <div id="topbar-right">
+        <div id="themeToggle">🌙 / ☀️ Theme</div>
+      </div>
+    </div>
 
     <div id="canvasContainer">
       <canvas id="gameCanvas" width="800" height="500"></canvas>
@@ -146,6 +307,7 @@
 
   const TARGET_SIZE = 128; // largest side at scale 1
   const HANDLE_SIZE = 10;  // in screen pixels
+  const GRID_SIZE = 16;
 
   // camera
   let cameraX = 0;
@@ -163,8 +325,11 @@
   const groupCommon = document.getElementById("groupCommon");
   const groupBox = document.getElementById("groupBox");
   const groupImage = document.getElementById("groupImage");
+  const noSelection = document.getElementById("noSelection");
 
   const fileInput = document.getElementById("fileInput");
+  const snapToggle = document.getElementById("snapToggle");
+  const themeToggle = document.getElementById("themeToggle");
 
   // Helpers: world <-> screen
   function worldToScreen(x, y) {
@@ -180,6 +345,16 @@
       y: y / zoom + cameraY
     };
   }
+
+  function snap(value) {
+    if (!snapToggle.checked) return value;
+    return Math.round(value / GRID_SIZE) * GRID_SIZE;
+  }
+
+  // Theme toggle
+  themeToggle.addEventListener("click", () => {
+    document.body.classList.toggle("light-theme");
+  });
 
   // Add a box
   document.getElementById("addBox").onclick = () => {
@@ -240,13 +415,17 @@
 
   // Delete selected object
   document.getElementById("deleteSelected").onclick = () => {
+    deleteSelected();
+  };
+
+  function deleteSelected() {
     if (selected) {
       objects = objects.filter(obj => obj !== selected);
       selected = null;
       updateProperties();
       draw();
     }
-  };
+  }
 
   // Update properties panel + visibility
   function updateProperties() {
@@ -261,9 +440,11 @@
       groupCommon.style.display = "none";
       groupBox.style.display = "none";
       groupImage.style.display = "none";
+      noSelection.style.display = "block";
       return;
     }
 
+    noSelection.style.display = "none";
     groupCommon.style.display = "block";
 
     propX.value = Math.round(selected.x);
@@ -287,23 +468,24 @@
   // When user edits properties
   propX.oninput = () => {
     if (selected) {
-      selected.x = Number(propX.value) || 0;
+      selected.x = snap(Number(propX.value) || 0);
       draw();
     }
   };
 
   propY.oninput = () => {
     if (selected) {
-      selected.y = Number(propY.value) || 0;
+      selected.y = snap(Number(propY.value) || 0);
       draw();
     }
   };
 
   propW.oninput = () => {
     if (selected) {
-      const newW = Number(propW.value) || 1;
+      let newW = Number(propW.value) || 1;
+      newW = Math.max(1, newW);
       if (selected.type === "box") {
-        selected.w = newW;
+        selected.w = snap(newW);
       } else if (selected.type === "image") {
         const scaleFromW = newW / (selected.realW * selected.baseScale);
         selected.scale = scaleFromW;
@@ -318,9 +500,10 @@
 
   propH.oninput = () => {
     if (selected) {
-      const newH = Number(propH.value) || 1;
+      let newH = Number(propH.value) || 1;
+      newH = Math.max(1, newH);
       if (selected.type === "box") {
-        selected.h = newH;
+        selected.h = snap(newH);
       } else if (selected.type === "image") {
         const scaleFromH = newH / (selected.realH * selected.baseScale);
         selected.scale = scaleFromH;
@@ -370,9 +553,13 @@
       }
 
       if (obj === selected) {
-        ctx.strokeStyle = "yellow";
+        ctx.save();
+        ctx.fillStyle = "rgba(80, 160, 255, 0.18)";
+        ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
+        ctx.strokeStyle = "#4ea1ff";
         ctx.lineWidth = 2 / zoom;
         ctx.strokeRect(obj.x, obj.y, obj.w, obj.h);
+        ctx.restore();
       }
     }
 
@@ -386,9 +573,17 @@
   function drawHandles(obj) {
     const corners = getObjectCornersScreen(obj);
     ctx.save();
-    ctx.fillStyle = "cyan";
+    ctx.fillStyle = "#4ea1ff";
+    ctx.strokeStyle = "#111";
+    ctx.lineWidth = 1;
     for (let c of corners) {
       ctx.fillRect(
+        c.x - HANDLE_SIZE / 2,
+        c.y - HANDLE_SIZE / 2,
+        HANDLE_SIZE,
+        HANDLE_SIZE
+      );
+      ctx.strokeRect(
         c.x - HANDLE_SIZE / 2,
         c.y - HANDLE_SIZE / 2,
         HANDLE_SIZE,
@@ -501,12 +696,14 @@
     }
 
     const worldPos = screenToWorld(mx, my);
-    const wx = worldPos.x;
-    const wy = worldPos.y;
+    let wx = worldPos.x;
+    let wy = worldPos.y;
 
     if (dragMode === "move" && selected) {
-      selected.x = wx - offsetX;
-      selected.y = wy - offsetY;
+      wx = wx - offsetX;
+      wy = wy - offsetY;
+      selected.x = snap(wx);
+      selected.y = snap(wy);
       updateProperties();
       draw();
     } else if (dragMode === "resize" && selected && resizeStart) {
@@ -601,10 +798,10 @@
       if (h < 0) { y += h; h = -h; }
       w = Math.max(minSize, w);
       h = Math.max(minSize, h);
-      obj.x = x;
-      obj.y = y;
-      obj.w = w;
-      obj.h = h;
+      obj.x = snap(x);
+      obj.y = snap(y);
+      obj.w = snap(w);
+      obj.h = snap(h);
     } else if (obj.type === "image") {
       if (w < 0) { x += w; w = -w; }
       if (h < 0) { y += h; h = -h; }
@@ -632,6 +829,58 @@
       }
     }
   }
+
+  // Keyboard shortcuts
+  document.addEventListener("keydown", (e) => {
+    const ctrl = e.ctrlKey || e.metaKey;
+
+    if ((e.key === "Delete" || e.key === "Backspace") && selected) {
+      e.preventDefault();
+      deleteSelected();
+      return;
+    }
+
+    if (ctrl && (e.key === "d" || e.key === "D") && selected) {
+      e.preventDefault();
+      const clone = JSON.parse(JSON.stringify(selected));
+      clone.x += 20;
+      clone.y += 20;
+      if (clone.img) {
+        clone.img = selected.img;
+      }
+      objects.push(clone);
+      selected = clone;
+      updateProperties();
+      draw();
+      return;
+    }
+
+    if (ctrl && e.key === "0") {
+      e.preventDefault();
+      zoom = 1;
+      cameraX = 0;
+      cameraY = 0;
+      draw();
+      return;
+    }
+
+    if (selected && ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) {
+      e.preventDefault();
+      const step = e.shiftKey ? 10 : 1;
+      if (e.key === "ArrowUp") selected.y -= step;
+      if (e.key === "ArrowDown") selected.y += step;
+      if (e.key === "ArrowLeft") selected.x -= step;
+      if (e.key === "ArrowRight") selected.x += step;
+
+      if (snapToggle.checked) {
+        selected.x = snap(selected.x);
+        selected.y = snap(selected.y);
+      }
+
+      updateProperties();
+      draw();
+    }
+  });
 
   updateProperties();
   draw();
