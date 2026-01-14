@@ -1,15 +1,108 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <style>
-    /* CSS */
-  </style>
-</head>
-<body>
-  <!-- Editor UI -->
+<meta charset="UTF-8">
+<title>My Game Editor</title>
 
-  <script>
-    // All JavaScript
-  </script>
+<style>
+  body {
+    margin: 0;
+    font-family: sans-serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Sidebar */
+  #sidebar {
+    width: 220px;
+    background: #222;
+    color: white;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+
+  /* Top bar */
+  #topbar {
+    height: 40px;
+    background: #444;
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+  }
+
+  /* Main area */
+  #main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Canvas area */
+  #canvasContainer {
+    flex: 1;
+    background: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  canvas {
+    background: #fff;
+    border: 2px solid #000;
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <h3>Objects</h3>
+    <button id="addBox">Add Box</button>
+  </div>
+
+  <!-- Main area -->
+  <div id="main">
+    <div id="topbar">My Game Editor v0.1</div>
+
+    <div id="canvasContainer">
+      <canvas id="gameCanvas" width="600" height="400"></canvas>
+    </div>
+  </div>
+
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+
+  // Simple object list
+  let objects = [];
+
+  // Add a test object
+  document.getElementById("addBox").onclick = () => {
+    objects.push({
+      x: Math.random() * 500,
+      y: Math.random() * 300,
+      w: 50,
+      h: 50,
+      color: "#" + Math.floor(Math.random()*16777215).toString(16)
+    });
+    draw();
+  };
+
+  // Draw everything
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let obj of objects) {
+      ctx.fillStyle = obj.color;
+      ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
+    }
+  }
+
+  draw();
+</script>
+
 </body>
 </html>
