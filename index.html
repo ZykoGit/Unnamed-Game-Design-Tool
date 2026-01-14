@@ -15,7 +15,7 @@
 
   /* Sidebar */
   #sidebar {
-    width: 220px;
+    width: 240px;
     background: #222;
     color: white;
     padding: 10px;
@@ -36,6 +36,12 @@
     margin-bottom: 8px;
     padding: 5px;
     box-sizing: border-box;
+  }
+
+  #sidebar label {
+    font-size: 12px;
+    display: block;
+    margin-top: 4px;
   }
 
   /* Top bar */
@@ -68,6 +74,10 @@
     background: #fff;
     border: 2px solid #000;
   }
+
+  #fileInput {
+    display: none;
+  }
 </style>
 </head>
 
@@ -77,6 +87,7 @@
   <div id="sidebar">
     <h3>Objects</h3>
     <button id="addBox">Add Box</button>
+    <button id="addImage">Add Image (PNG)</button>
     <button id="deleteSelected">Delete Selected</button>
 
     <h3>Properties</h3>
@@ -86,19 +97,25 @@
     <label>Y:</label>
     <input id="propY" type="number">
 
-    <label>Width:</label>
+    <label>Width (display):</label>
     <input id="propW" type="number">
 
-    <label>Height:</label>
+    <label>Height (display):</label>
     <input id="propH" type="number">
 
-    <label>Color:</label>
+    <label>Color (for boxes):</label>
     <input id="propColor" type="text">
+
+    <label>Scale (for images):</label>
+    <input id="propScale" type="number" step="0.1">
   </div>
+
+  <!-- Hidden file input for images -->
+  <input id="fileInput" type="file" accept="image/png">
 
   <!-- Main area -->
   <div id="main">
-    <div id="topbar">Unnamed Game Editor v0.4</div>
+    <div id="topbar">Unnamed Game Editor v0.5</div>
 
     <div id="canvasContainer">
       <canvas id="gameCanvas" width="600" height="400"></canvas>
@@ -115,16 +132,22 @@
   let offsetY = 0;
   let dragging = false;
 
+  const TARGET_SIZE = 128; // largest side at scale 1
+
   // UI elements
   const propX = document.getElementById("propX");
   const propY = document.getElementById("propY");
   const propW = document.getElementById("propW");
   const propH = document.getElementById("propH");
   const propColor = document.getElementById("propColor");
+  const propScale = document.getElementById("propScale");
+
+  const fileInput = document.getElementById("fileInput");
 
   // Add a box
   document.getElementById("addBox").onclick = () => {
     objects.push({
+      type: "box",
       x: Math.random() * 500,
       y: Math.random() * 300,
       w: 50,
@@ -133,6 +156,51 @@
     });
     draw();
   };
+
+  // Add image button
+  document.getElementById("addImage").onclick = () => {
+    fileInput.value = "";
+    fileInput.click();
+  };
+
+  // Handle image file selection
+  fileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const img = new Image();
+      img.onload = function() {
+        const realW = img.width;
+        const realH = img.height;
+
+        // keep aspect ratio, largest side becomes TARGET_SIZE at scale 1
+        const maxSide = Math.max(realW, realH);
+        const baseScale = TARGET_SIZE / maxSide;
+
+        const displayW = realW * baseScale;
+        const displayH = realH * baseScale;
+
+        objects.push({
+          type: "image",
+          x: Math.random() * (canvas.width - displayW),
+          y: Math.random() * (canvas.height - displayH),
+          w: displayW,
+          h: displayH,
+          realW: realW,
+          realH: realH,
+          scale: 1,
+          baseScale: baseScale,
+          img: img
+        });
+
+        draw();
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
 
   // Delete selected object
   document.getElementById("deleteSelected").onclick = () => {
@@ -152,30 +220,106 @@
       propW.value = "";
       propH.value = "";
       propColor.value = "";
+      propScale.value = "";
       return;
     }
 
-    propX.value = selected.x;
-    propY.value = selected.y;
-    propW.value = selected.w;
-    propH.value = selected.h;
-    propColor.value = selected.color;
+    propX.value = Math.round(selected.x);
+    propY.value = Math.round(selected.y);
+    propW.value = Math.round(selected.w);
+    propH.value = Math.round(selected.h);
+
+    if (selected.type === "box") {
+      propColor.value = selected.color || "";
+      propScale.value = "";
+    } else if (selected.type === "image") {
+      propColor.value = "";
+      propScale.value = selected.scale.toFixed(2);
+    }
   }
 
   // When user edits properties
-  propX.oninput = () => { if (selected) { selected.x = Number(propX.value); draw(); } };
-  propY.oninput = () => { if (selected) { selected.y = Number(propY.value); draw(); } };
-  propW.oninput = () => { if (selected) { selected.w = Number(propW.value); draw(); } };
-  propH.oninput = () => { if (selected) { selected.h = Number(propH.value); draw(); } };
-  propColor.oninput = () => { if (selected) { selected.color = propColor.value; draw(); } };
+  propX.oninput = () => {
+    if (selected) {
+      selected.x = Number(propX.value) || 0;
+      draw();
+    }
+  };
+
+  propY.oninput = () => {
+    if (selected) {
+      selected.y = Number(propY.value) || 0;
+      draw();
+    }
+  };
+
+  propW.oninput = () => {
+    if (selected) {
+      const newW = Number(propW.value) || 1;
+      if (selected.type === "box") {
+        selected.w = newW;
+      } else if (selected.type === "image") {
+        // change scale based on width, keep aspect ratio
+        const scaleFromW = newW / (selected.realW * selected.baseScale);
+        selected.scale = scaleFromW;
+        selected.w = selected.realW * selected.baseScale * selected.scale;
+        selected.h = selected.realH * selected.baseScale * selected.scale;
+        propH.value = Math.round(selected.h);
+        propScale.value = selected.scale.toFixed(2);
+      }
+      draw();
+    }
+  };
+
+  propH.oninput = () => {
+    if (selected) {
+      const newH = Number(propH.value) || 1;
+      if (selected.type === "box") {
+        selected.h = newH;
+      } else if (selected.type === "image") {
+        // change scale based on height, keep aspect ratio
+        const scaleFromH = newH / (selected.realH * selected.baseScale);
+        selected.scale = scaleFromH;
+        selected.w = selected.realW * selected.baseScale * selected.scale;
+        selected.h = selected.realH * selected.baseScale * selected.scale;
+        propW.value = Math.round(selected.w);
+        propScale.value = selected.scale.toFixed(2);
+      }
+      draw();
+    }
+  };
+
+  propColor.oninput = () => {
+    if (selected && selected.type === "box") {
+      selected.color = propColor.value;
+      draw();
+    }
+  };
+
+  propScale.oninput = () => {
+    if (selected && selected.type === "image") {
+      let s = Number(propScale.value);
+      if (!isFinite(s) || s <= 0) s = 0.1;
+      selected.scale = s;
+      selected.w = selected.realW * selected.baseScale * selected.scale;
+      selected.h = selected.realH * selected.baseScale * selected.scale;
+      propW.value = Math.round(selected.w);
+      propH.value = Math.round(selected.h);
+      draw();
+    }
+  };
 
   // Draw everything
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     for (let obj of objects) {
-      ctx.fillStyle = obj.color;
-      ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
+      if (obj.type === "box") {
+        ctx.fillStyle = obj.color;
+        ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
+      } else if (obj.type === "image" && obj.img) {
+        ctx.drawImage(obj.img, obj.x, obj.y, obj.w, obj.h);
+      }
 
       if (obj === selected) {
         ctx.strokeStyle = "yellow";
@@ -193,7 +337,9 @@
 
     selected = null;
 
-    for (let obj of objects) {
+    // select topmost object under mouse
+    for (let i = objects.length - 1; i >= 0; i--) {
+      const obj = objects[i];
       if (mx >= obj.x && mx <= obj.x + obj.w &&
           my >= obj.y && my <= obj.y + obj.h) {
         selected = obj;
