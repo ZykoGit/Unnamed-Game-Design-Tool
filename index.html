@@ -21,6 +21,7 @@
     --button-border: #555;
     --input-bg: #2a2a2a;
     --input-border: #555;
+    --modal-bg: #1b1b1b;
   }
 
   body.light-theme {
@@ -37,6 +38,7 @@
     --button-border: #bbbbbb;
     --input-bg: #ffffff;
     --input-border: #bbbbbb;
+    --modal-bg: #f8f8f8;
   }
 
   body {
@@ -101,7 +103,8 @@
   }
 
   #sidebar input[type="number"],
-  #sidebar input[type="text"] {
+  #sidebar input[type="text"],
+  #sidebar select {
     width: 100%;
     margin-bottom: 6px;
     padding: 5px 6px;
@@ -208,6 +211,84 @@
     opacity: 0.7;
     margin-top: 4px;
   }
+
+  /* Logic modal */
+  #logicModalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  #logicModal {
+    width: 420px;
+    max-width: 90vw;
+    background: var(--modal-bg);
+    border-radius: 10px;
+    border: 1px solid var(--border-soft);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.6);
+    padding: 14px 16px 12px;
+    box-sizing: border-box;
+  }
+
+  #logicModalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  #logicModalTitle {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  #logicModalClose {
+    cursor: pointer;
+    border-radius: 999px;
+    border: 1px solid var(--button-border);
+    background: var(--button-bg);
+    padding: 2px 8px;
+    font-size: 11px;
+  }
+
+  #logicModalBody label {
+    font-size: 11px;
+    display: block;
+    margin-top: 6px;
+    margin-bottom: 2px;
+    opacity: 0.85;
+  }
+
+  #logicModalBody input[type="number"],
+  #logicModalBody select {
+    width: 100%;
+    margin-bottom: 4px;
+    padding: 4px 6px;
+    box-sizing: border-box;
+    border-radius: 4px;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text-main);
+    font-size: 12px;
+  }
+
+  #logicModalBody input[type="checkbox"] {
+    margin-right: 6px;
+  }
+
+  .logic-row {
+    margin-bottom: 4px;
+  }
+
+  .logic-hint {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: 4px;
+  }
 </style>
 </head>
 
@@ -225,7 +306,8 @@
         Snap to grid (16px)
       </label>
       <div class="small-note">
-        Right-click drag to pan • Scroll to zoom
+        Right-click drag to pan • Scroll to zoom<br>
+        Double-click object to edit logic
       </div>
     </div>
 
@@ -246,6 +328,15 @@
 
         <label>Height (display):</label>
         <input id="propH" type="number">
+
+        <label>Object type:</label>
+        <select id="logicTypeSelect">
+          <option value="generic">Generic</option>
+          <option value="character">Character</option>
+          <option value="background">Background</option>
+          <option value="platform">Platform</option>
+          <option value="projectile">Projectile</option>
+        </select>
       </div>
 
       <div id="groupBox">
@@ -278,7 +369,7 @@
     <div id="topbar">
       <div id="topbar-left">
         <span id="topbar-title">Unnamed Game Editor</span>
-        <span id="topbar-version">v0.7</span>
+        <span id="topbar-version">v0.8</span>
       </div>
       <div id="topbar-right">
         <div id="themeToggle">🌙 / ☀️ Theme</div>
@@ -287,6 +378,19 @@
 
     <div id="canvasContainer">
       <canvas id="gameCanvas" width="800" height="500"></canvas>
+    </div>
+  </div>
+
+  <!-- Logic modal -->
+  <div id="logicModalOverlay">
+    <div id="logicModal">
+      <div id="logicModalHeader">
+        <div id="logicModalTitle">Object Logic</div>
+        <button id="logicModalClose">Close</button>
+      </div>
+      <div id="logicModalBody">
+        <!-- Filled dynamically based on logicType -->
+      </div>
     </div>
   </div>
 
@@ -314,6 +418,9 @@
   let cameraY = 0;
   let zoom = 1;
 
+  // time
+  let lastTimestamp = performance.now();
+
   // UI elements
   const propX = document.getElementById("propX");
   const propY = document.getElementById("propY");
@@ -321,6 +428,7 @@
   const propH = document.getElementById("propH");
   const propColor = document.getElementById("propColor");
   const propScale = document.getElementById("propScale");
+  const logicTypeSelect = document.getElementById("logicTypeSelect");
 
   const groupCommon = document.getElementById("groupCommon");
   const groupBox = document.getElementById("groupBox");
@@ -330,6 +438,14 @@
   const fileInput = document.getElementById("fileInput");
   const snapToggle = document.getElementById("snapToggle");
   const themeToggle = document.getElementById("themeToggle");
+
+  const logicModalOverlay = document.getElementById("logicModalOverlay");
+  const logicModalBody = document.getElementById("logicModalBody");
+  const logicModalTitle = document.getElementById("logicModalTitle");
+  const logicModalClose = document.getElementById("logicModalClose");
+
+  // Input state for character movement
+  const keysDown = {};
 
   // Helpers: world <-> screen
   function worldToScreen(x, y) {
@@ -356,16 +472,61 @@
     document.body.classList.toggle("light-theme");
   });
 
+  // Default logic configs
+  function defaultLogicConfig(type) {
+    if (type === "character") {
+      return {
+        controls: "arrows",   // "arrows" or "wasd"
+        moveSpeed: 200,
+        isPlayer: true
+      };
+    }
+    if (type === "background") {
+      return {
+        parallaxFactorX: 0.5,
+        parallaxFactorY: 0.8,
+        reactsToPlayer: false
+      };
+    }
+    if (type === "platform") {
+      return {
+        isLadder: false,
+        isSlippery: false,
+        isWater: false,
+        oneWay: false
+      };
+    }
+    if (type === "projectile") {
+      return {
+        speed: 300,
+        direction: 0,      // degrees
+        lifetime: 1.5,
+        destroyOnImpact: true,
+        gravity: 0,
+        bounce: false
+      };
+    }
+    return {}; // generic
+  }
+
+  function ensureLogicFields(obj) {
+    if (!obj.logicType) obj.logicType = "generic";
+    if (!obj.logicConfig) obj.logicConfig = defaultLogicConfig(obj.logicType);
+  }
+
   // Add a box
   document.getElementById("addBox").onclick = () => {
-    objects.push({
-      type: "box",
+    const obj = {
+      renderType: "box",
+      logicType: "generic",
       x: 100,
       y: 100,
       w: 80,
       h: 80,
-      color: "#" + Math.floor(Math.random()*16777215).toString(16)
-    });
+      color: "#" + Math.floor(Math.random()*16777215).toString(16),
+      logicConfig: defaultLogicConfig("generic")
+    };
+    objects.push(obj);
     draw();
   };
 
@@ -393,8 +554,9 @@
         const displayW = realW * baseScale;
         const displayH = realH * baseScale;
 
-        objects.push({
-          type: "image",
+        const obj = {
+          renderType: "image",
+          logicType: "generic",
           x: 100,
           y: 100,
           w: displayW,
@@ -403,9 +565,11 @@
           realH: realH,
           scale: 1,
           baseScale: baseScale,
-          img: img
-        });
+          img: img,
+          logicConfig: defaultLogicConfig("generic")
+        };
 
+        objects.push(obj);
         draw();
       };
       img.src = ev.target.result;
@@ -436,6 +600,7 @@
       propH.value = "";
       propColor.value = "";
       propScale.value = "";
+      logicTypeSelect.value = "generic";
 
       groupCommon.style.display = "none";
       groupBox.style.display = "none";
@@ -444,6 +609,8 @@
       return;
     }
 
+    ensureLogicFields(selected);
+
     noSelection.style.display = "none";
     groupCommon.style.display = "block";
 
@@ -451,17 +618,18 @@
     propY.value = Math.round(selected.y);
     propW.value = Math.round(selected.w);
     propH.value = Math.round(selected.h);
+    logicTypeSelect.value = selected.logicType || "generic";
 
-    if (selected.type === "box") {
+    if (selected.renderType === "box") {
       groupBox.style.display = "block";
       groupImage.style.display = "none";
       propColor.value = selected.color || "";
       propScale.value = "";
-    } else if (selected.type === "image") {
+    } else if (selected.renderType === "image") {
       groupBox.style.display = "none";
       groupImage.style.display = "block";
       propColor.value = "";
-      propScale.value = selected.scale.toFixed(2);
+      propScale.value = selected.scale ? selected.scale.toFixed(2) : "1.00";
     }
   }
 
@@ -484,9 +652,9 @@
     if (selected) {
       let newW = Number(propW.value) || 1;
       newW = Math.max(1, newW);
-      if (selected.type === "box") {
+      if (selected.renderType === "box") {
         selected.w = snap(newW);
-      } else if (selected.type === "image") {
+      } else if (selected.renderType === "image") {
         const scaleFromW = newW / (selected.realW * selected.baseScale);
         selected.scale = scaleFromW;
         selected.w = selected.realW * selected.baseScale * selected.scale;
@@ -502,9 +670,9 @@
     if (selected) {
       let newH = Number(propH.value) || 1;
       newH = Math.max(1, newH);
-      if (selected.type === "box") {
+      if (selected.renderType === "box") {
         selected.h = snap(newH);
-      } else if (selected.type === "image") {
+      } else if (selected.renderType === "image") {
         const scaleFromH = newH / (selected.realH * selected.baseScale);
         selected.scale = scaleFromH;
         selected.w = selected.realW * selected.baseScale * selected.scale;
@@ -517,14 +685,14 @@
   };
 
   propColor.oninput = () => {
-    if (selected && selected.type === "box") {
+    if (selected && selected.renderType === "box") {
       selected.color = propColor.value;
       draw();
     }
   };
 
   propScale.oninput = () => {
-    if (selected && selected.type === "image") {
+    if (selected && selected.renderType === "image") {
       let s = Number(propScale.value);
       if (!isFinite(s) || s <= 0) s = 0.1;
       selected.scale = s;
@@ -536,6 +704,13 @@
     }
   };
 
+  logicTypeSelect.onchange = () => {
+    if (!selected) return;
+    const newType = logicTypeSelect.value;
+    selected.logicType = newType;
+    selected.logicConfig = defaultLogicConfig(newType);
+  };
+
   // Draw everything
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -545,10 +720,10 @@
     ctx.scale(zoom, zoom);
 
     for (let obj of objects) {
-      if (obj.type === "box") {
-        ctx.fillStyle = obj.color;
+      if (obj.renderType === "box") {
+        ctx.fillStyle = obj.color || "#888";
         ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
-      } else if (obj.type === "image" && obj.img) {
+      } else if (obj.renderType === "image" && obj.img) {
         ctx.drawImage(obj.img, obj.x, obj.y, obj.w, obj.h);
       }
 
@@ -619,6 +794,26 @@
     return null;
   }
 
+  function pickObjectAtMouse(e) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const worldPos = screenToWorld(mx, my);
+    const wx = worldPos.x;
+    const wy = worldPos.y;
+
+    for (let i = objects.length - 1; i >= 0; i--) {
+      const obj = objects[i];
+      if (
+        wx >= obj.x && wx <= obj.x + obj.w &&
+        wy >= obj.y && wy <= obj.y + obj.h
+      ) {
+        return obj;
+      }
+    }
+    return null;
+  }
+
   // Mouse events
   canvas.addEventListener("mousedown", (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -652,25 +847,20 @@
       return;
     }
 
-    const worldPos = screenToWorld(mx, my);
-    const wx = worldPos.x;
-    const wy = worldPos.y;
+    const obj = pickObjectAtMouse(e);
+    selected = obj || null;
 
-    selected = null;
-
-    for (let i = objects.length - 1; i >= 0; i--) {
-      const obj = objects[i];
-      if (
-        wx >= obj.x && wx <= obj.x + obj.w &&
-        wy >= obj.y && wy <= obj.y + obj.h
-      ) {
-        selected = obj;
-        dragMode = "move";
-        dragging = true;
-        offsetX = wx - obj.x;
-        offsetY = wy - obj.y;
-        break;
-      }
+    if (selected) {
+      const worldPos = screenToWorld(mx, my);
+      const wx = worldPos.x;
+      const wy = worldPos.y;
+      dragMode = "move";
+      dragging = true;
+      offsetX = wx - selected.x;
+      offsetY = wy - selected.y;
+    } else {
+      dragMode = null;
+      dragging = false;
     }
 
     updateProperties();
@@ -729,6 +919,17 @@
 
   canvas.addEventListener("contextmenu", (e) => {
     e.preventDefault();
+  });
+
+  // Double-click: open logic modal
+  canvas.addEventListener("dblclick", (e) => {
+    const obj = pickObjectAtMouse(e);
+    if (!obj) return;
+    selected = obj;
+    ensureLogicFields(selected);
+    updateProperties();
+    openLogicModal(selected);
+    draw();
   });
 
   // Zoom with wheel (toward cursor)
@@ -793,7 +994,7 @@
     }
 
     const minSize = 5;
-    if (obj.type === "box") {
+    if (obj.renderType === "box" || obj.renderType === "image") {
       if (w < 0) { x += w; w = -w; }
       if (h < 0) { y += h; h = -h; }
       w = Math.max(minSize, w);
@@ -802,36 +1003,268 @@
       obj.y = snap(y);
       obj.w = snap(w);
       obj.h = snap(h);
-    } else if (obj.type === "image") {
-      if (w < 0) { x += w; w = -w; }
-      if (h < 0) { y += h; h = -h; }
-
-      const targetW = w;
-      const scaleFromW = targetW / (obj.realW * obj.baseScale);
-      let scale = Math.max(0.05, scaleFromW);
-
-      obj.scale = scale;
-      obj.w = obj.realW * obj.baseScale * obj.scale;
-      obj.h = obj.realH * obj.baseScale * obj.scale;
-
-      if (handle === "tl") {
-        obj.x = s.x + s.w - obj.w;
-        obj.y = s.y + s.h - obj.h;
-      } else if (handle === "tr") {
-        obj.x = s.x;
-        obj.y = s.y + s.h - obj.h;
-      } else if (handle === "bl") {
-        obj.x = s.x + s.w - obj.w;
-        obj.y = s.y;
-      } else if (handle === "br") {
-        obj.x = s.x;
-        obj.y = s.y;
-      }
     }
   }
 
-  // Keyboard shortcuts
+  // Logic modal
+  function openLogicModal(obj) {
+    ensureLogicFields(obj);
+    logicModalTitle.textContent = `Logic: ${obj.logicType}`;
+    logicModalBody.innerHTML = "";
+
+    if (obj.logicType === "generic") {
+      const div = document.createElement("div");
+      div.className = "logic-hint";
+      div.textContent = "This object has no special logic yet.";
+      logicModalBody.appendChild(div);
+    }
+
+    if (obj.logicType === "character") {
+      const cfg = obj.logicConfig;
+
+      const labelControls = document.createElement("label");
+      labelControls.textContent = "Controls:";
+      const selectControls = document.createElement("select");
+      const optArrows = document.createElement("option");
+      optArrows.value = "arrows";
+      optArrows.textContent = "Arrow keys";
+      const optWasd = document.createElement("option");
+      optWasd.value = "wasd";
+      optWasd.textContent = "WASD";
+      selectControls.appendChild(optArrows);
+      selectControls.appendChild(optWasd);
+      selectControls.value = cfg.controls || "arrows";
+      selectControls.onchange = () => {
+        cfg.controls = selectControls.value;
+      };
+
+      const labelSpeed = document.createElement("label");
+      labelSpeed.textContent = "Move speed (px/sec):";
+      const inputSpeed = document.createElement("input");
+      inputSpeed.type = "number";
+      inputSpeed.value = cfg.moveSpeed ?? 200;
+      inputSpeed.oninput = () => {
+        cfg.moveSpeed = Number(inputSpeed.value) || 0;
+      };
+
+      const labelIsPlayer = document.createElement("label");
+      labelIsPlayer.textContent = "Player character:";
+      const rowPlayer = document.createElement("div");
+      rowPlayer.className = "logic-row";
+      const cbPlayer = document.createElement("input");
+      cbPlayer.type = "checkbox";
+      cbPlayer.checked = !!cfg.isPlayer;
+      cbPlayer.onchange = () => {
+        cfg.isPlayer = cbPlayer.checked;
+      };
+      rowPlayer.appendChild(cbPlayer);
+      const spanPlayer = document.createElement("span");
+      spanPlayer.textContent = "This object is the player";
+      rowPlayer.appendChild(spanPlayer);
+
+      logicModalBody.appendChild(labelControls);
+      logicModalBody.appendChild(selectControls);
+      logicModalBody.appendChild(labelSpeed);
+      logicModalBody.appendChild(inputSpeed);
+      logicModalBody.appendChild(labelIsPlayer);
+      logicModalBody.appendChild(rowPlayer);
+
+      const hint = document.createElement("div");
+      hint.className = "logic-hint";
+      hint.textContent = "Player characters respond to keyboard input based on the chosen control scheme.";
+      logicModalBody.appendChild(hint);
+    }
+
+    if (obj.logicType === "background") {
+      const cfg = obj.logicConfig;
+
+      const labelPX = document.createElement("label");
+      labelPX.textContent = "Parallax X factor:";
+      const inputPX = document.createElement("input");
+      inputPX.type = "number";
+      inputPX.step = "0.1";
+      inputPX.value = cfg.parallaxFactorX ?? 0.5;
+      inputPX.oninput = () => {
+        cfg.parallaxFactorX = Number(inputPX.value) || 0;
+      };
+
+      const labelPY = document.createElement("label");
+      labelPY.textContent = "Parallax Y factor:";
+      const inputPY = document.createElement("input");
+      inputPY.type = "number";
+      inputPY.step = "0.1";
+      inputPY.value = cfg.parallaxFactorY ?? 0.8;
+      inputPY.oninput = () => {
+        cfg.parallaxFactorY = Number(inputPY.value) || 0;
+      };
+
+      const labelReact = document.createElement("label");
+      labelReact.textContent = "Reacts to player:";
+      const rowReact = document.createElement("div");
+      rowReact.className = "logic-row";
+      const cbReact = document.createElement("input");
+      cbReact.type = "checkbox";
+      cbReact.checked = !!cfg.reactsToPlayer;
+      cbReact.onchange = () => {
+        cfg.reactsToPlayer = cbReact.checked;
+      };
+      rowReact.appendChild(cbReact);
+      const spanReact = document.createElement("span");
+      spanReact.textContent = "Enable reactive background behavior (future use)";
+      rowReact.appendChild(spanReact);
+
+      logicModalBody.appendChild(labelPX);
+      logicModalBody.appendChild(inputPX);
+      logicModalBody.appendChild(labelPY);
+      logicModalBody.appendChild(inputPY);
+      logicModalBody.appendChild(labelReact);
+      logicModalBody.appendChild(rowReact);
+
+      const hint = document.createElement("div");
+      hint.className = "logic-hint";
+      hint.textContent = "Parallax and reactive behavior will be used when a camera/player system is expanded.";
+      logicModalBody.appendChild(hint);
+    }
+
+    if (obj.logicType === "platform") {
+      const cfg = obj.logicConfig;
+
+      const makeToggle = (key, labelText) => {
+        const label = document.createElement("label");
+        label.textContent = labelText;
+        const row = document.createElement("div");
+        row.className = "logic-row";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = !!cfg[key];
+        cb.onchange = () => {
+          cfg[key] = cb.checked;
+        };
+        row.appendChild(cb);
+        const span = document.createElement("span");
+        span.textContent = labelText;
+        row.appendChild(span);
+        logicModalBody.appendChild(label);
+        logicModalBody.appendChild(row);
+      };
+
+      makeToggle("isLadder", "Acts as ladder");
+      makeToggle("isSlippery", "Slippery surface");
+      makeToggle("isWater", "Acts as water");
+      makeToggle("oneWay", "One-way platform");
+
+      const hint = document.createElement("div");
+      hint.className = "logic-hint";
+      hint.textContent = "Platform flags will be used by collision and movement logic as the engine grows.";
+      logicModalBody.appendChild(hint);
+    }
+
+    if (obj.logicType === "projectile") {
+      const cfg = obj.logicConfig;
+
+      const labelSpeed = document.createElement("label");
+      labelSpeed.textContent = "Speed (px/sec):";
+      const inputSpeed = document.createElement("input");
+      inputSpeed.type = "number";
+      inputSpeed.value = cfg.speed ?? 300;
+      inputSpeed.oninput = () => {
+        cfg.speed = Number(inputSpeed.value) || 0;
+      };
+
+      const labelDir = document.createElement("label");
+      labelDir.textContent = "Direction (degrees):";
+      const inputDir = document.createElement("input");
+      inputDir.type = "number";
+      inputDir.value = cfg.direction ?? 0;
+      inputDir.oninput = () => {
+        cfg.direction = Number(inputDir.value) || 0;
+      };
+
+      const labelLife = document.createElement("label");
+      labelLife.textContent = "Lifetime (seconds):";
+      const inputLife = document.createElement("input");
+      inputLife.type = "number";
+      inputLife.step = "0.1";
+      inputLife.value = cfg.lifetime ?? 1.5;
+      inputLife.oninput = () => {
+        cfg.lifetime = Number(inputLife.value) || 0;
+      };
+
+      const labelDestroy = document.createElement("label");
+      labelDestroy.textContent = "Destroy on impact:";
+      const rowDestroy = document.createElement("div");
+      rowDestroy.className = "logic-row";
+      const cbDestroy = document.createElement("input");
+      cbDestroy.type = "checkbox";
+      cbDestroy.checked = !!cfg.destroyOnImpact;
+      cbDestroy.onchange = () => {
+        cfg.destroyOnImpact = cbDestroy.checked;
+      };
+      rowDestroy.appendChild(cbDestroy);
+      const spanDestroy = document.createElement("span");
+      spanDestroy.textContent = "Remove projectile when it hits something";
+      rowDestroy.appendChild(spanDestroy);
+
+      const labelGravity = document.createElement("label");
+      labelGravity.textContent = "Gravity (px/sec²):";
+      const inputGravity = document.createElement("input");
+      inputGravity.type = "number";
+      inputGravity.value = cfg.gravity ?? 0;
+      inputGravity.oninput = () => {
+        cfg.gravity = Number(inputGravity.value) || 0;
+      };
+
+      const labelBounce = document.createElement("label");
+      labelBounce.textContent = "Bounce:";
+      const rowBounce = document.createElement("div");
+      rowBounce.className = "logic-row";
+      const cbBounce = document.createElement("input");
+      cbBounce.type = "checkbox";
+      cbBounce.checked = !!cfg.bounce;
+      cbBounce.onchange = () => {
+        cfg.bounce = cbBounce.checked;
+      };
+      rowBounce.appendChild(cbBounce);
+      const spanBounce = document.createElement("span");
+      spanBounce.textContent = "Reflect on collision (stub)";
+      rowBounce.appendChild(spanBounce);
+
+      logicModalBody.appendChild(labelSpeed);
+      logicModalBody.appendChild(inputSpeed);
+      logicModalBody.appendChild(labelDir);
+      logicModalBody.appendChild(inputDir);
+      logicModalBody.appendChild(labelLife);
+      logicModalBody.appendChild(inputLife);
+      logicModalBody.appendChild(labelDestroy);
+      logicModalBody.appendChild(rowDestroy);
+      logicModalBody.appendChild(labelGravity);
+      logicModalBody.appendChild(inputGravity);
+      logicModalBody.appendChild(labelBounce);
+      logicModalBody.appendChild(rowBounce);
+
+      const hint = document.createElement("div");
+      hint.className = "logic-hint";
+      hint.textContent = "Projectiles move automatically each frame and expire after their lifetime.";
+      logicModalBody.appendChild(hint);
+    }
+
+    logicModalOverlay.style.display = "flex";
+  }
+
+  logicModalClose.addEventListener("click", () => {
+    logicModalOverlay.style.display = "none";
+  });
+
+  logicModalOverlay.addEventListener("click", (e) => {
+    if (e.target === logicModalOverlay) {
+      logicModalOverlay.style.display = "none";
+    }
+  });
+
+  // Keyboard shortcuts + input state
   document.addEventListener("keydown", (e) => {
+    keysDown[e.key] = true;
+
     const ctrl = e.ctrlKey || e.metaKey;
 
     if ((e.key === "Delete" || e.key === "Backspace") && selected) {
@@ -843,11 +1276,11 @@
     if (ctrl && (e.key === "d" || e.key === "D") && selected) {
       e.preventDefault();
       const clone = JSON.parse(JSON.stringify(selected));
-      clone.x += 20;
-      clone.y += 20;
-      if (clone.img) {
+      if (clone.img && selected.img) {
         clone.img = selected.img;
       }
+      clone.x += 20;
+      clone.y += 20;
       objects.push(clone);
       selected = clone;
       updateProperties();
@@ -882,8 +1315,98 @@
     }
   });
 
+  document.addEventListener("keyup", (e) => {
+    keysDown[e.key] = false;
+  });
+
+  // Logic: find player character
+  function getPlayerCharacter() {
+    for (const obj of objects) {
+      if (obj.logicType === "character" && obj.logicConfig && obj.logicConfig.isPlayer) {
+        return obj;
+      }
+    }
+    return null;
+  }
+
+  // Logic: update loop
+  function update(dt) {
+    // Character movement
+    const player = getPlayerCharacter();
+    if (player) {
+      const cfg = player.logicConfig || {};
+      const speed = cfg.moveSpeed || 0;
+      let dx = 0;
+      let dy = 0;
+
+      if (cfg.controls === "wasd") {
+        if (keysDown["w"] || keysDown["W"]) dy -= 1;
+        if (keysDown["s"] || keysDown["S"]) dy += 1;
+        if (keysDown["a"] || keysDown["A"]) dx -= 1;
+        if (keysDown["d"] || keysDown["D"]) dx += 1;
+      } else {
+        if (keysDown["ArrowUp"]) dy -= 1;
+        if (keysDown["ArrowDown"]) dy += 1;
+        if (keysDown["ArrowLeft"]) dx -= 1;
+        if (keysDown["ArrowRight"]) dx += 1;
+      }
+
+      if (dx !== 0 || dy !== 0) {
+        const len = Math.sqrt(dx*dx + dy*dy) || 1;
+        dx /= len;
+        dy /= len;
+        player.x += dx * speed * dt;
+        player.y += dy * speed * dt;
+      }
+    }
+
+    // Projectile movement + lifetime
+    for (let i = objects.length - 1; i >= 0; i--) {
+      const obj = objects[i];
+      if (obj.logicType === "projectile" && obj.logicConfig) {
+        const cfg = obj.logicConfig;
+        if (cfg.lifetime !== undefined) {
+          cfg.lifetime -= dt;
+          if (cfg.lifetime <= 0) {
+            objects.splice(i, 1);
+            if (selected === obj) selected = null;
+            continue;
+          }
+        }
+
+        const angleRad = (cfg.direction || 0) * Math.PI / 180;
+        const vx = Math.cos(angleRad) * (cfg.speed || 0);
+        const vy = Math.sin(angleRad) * (cfg.speed || 0);
+
+        obj.x += vx * dt;
+        obj.y += vy * dt;
+
+        if (cfg.gravity) {
+          obj.y += cfg.gravity * dt * dt;
+        }
+
+        // Simple bounds kill
+        if (obj.x + obj.w < -100 || obj.x > 2000 || obj.y + obj.h < -100 || obj.y > 2000) {
+          objects.splice(i, 1);
+          if (selected === obj) selected = null;
+        }
+      }
+    }
+  }
+
+  function loop(timestamp) {
+    const dt = (timestamp - lastTimestamp) / 1000;
+    lastTimestamp = timestamp;
+
+    update(dt);
+    draw();
+
+    requestAnimationFrame(loop);
+  }
+
   updateProperties();
   draw();
+  requestAnimationFrame(loop);
 </script>
 
 </body>
