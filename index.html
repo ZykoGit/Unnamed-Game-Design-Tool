@@ -51,7 +51,6 @@
     color: var(--text-main);
   }
 
-  /* Sidebar */
   #sidebar {
     width: 260px;
     background: var(--bg-sidebar);
@@ -134,7 +133,6 @@
     margin-top: 4px;
   }
 
-  /* Top bar */
   #topbar {
     height: 40px;
     background: var(--bg-topbar);
@@ -177,14 +175,12 @@
     background: var(--button-bg);
   }
 
-  /* Main area */
   #main {
     flex: 1;
     display: flex;
     flex-direction: column;
   }
 
-  /* Canvas area */
   #canvasContainer {
     flex: 1;
     background: var(--bg-canvas);
@@ -202,7 +198,8 @@
     box-shadow: 0 10px 30px rgba(0,0,0,0.35);
   }
 
-  #fileInput {
+  #fileInput,
+  #animFileInput {
     display: none;
   }
 
@@ -212,7 +209,6 @@
     margin-top: 4px;
   }
 
-  /* Logic modal */
   #logicModalOverlay {
     position: fixed;
     inset: 0;
@@ -224,14 +220,17 @@
   }
 
   #logicModal {
-    width: 420px;
-    max-width: 90vw;
+    width: 520px;
+    max-width: 95vw;
+    max-height: 90vh;
     background: var(--modal-bg);
     border-radius: 10px;
     border: 1px solid var(--border-soft);
     box-shadow: 0 18px 40px rgba(0,0,0,0.6);
     padding: 14px 16px 12px;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
   }
 
   #logicModalHeader {
@@ -255,6 +254,11 @@
     font-size: 11px;
   }
 
+  #logicModalBody {
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
   #logicModalBody label {
     font-size: 11px;
     display: block;
@@ -264,7 +268,8 @@
   }
 
   #logicModalBody input[type="number"],
-  #logicModalBody select {
+  #logicModalBody select,
+  #logicModalBody input[type="text"] {
     width: 100%;
     margin-bottom: 4px;
     padding: 4px 6px;
@@ -289,12 +294,166 @@
     opacity: 0.7;
     margin-top: 4px;
   }
+
+  .logic-section-title {
+    margin-top: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.9;
+  }
+
+  .anim-section {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-soft);
+  }
+
+  .anim-header-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .anim-header-row input[type="text"] {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .anim-header-row button {
+    padding: 4px 8px;
+    font-size: 11px;
+    border-radius: 6px;
+    border: 1px solid var(--button-border);
+    background: var(--button-bg);
+    color: var(--text-main);
+    cursor: pointer;
+  }
+
+  .anim-header-row button:hover {
+    background: var(--button-bg-hover);
+  }
+
+  .anim-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+
+  .anim-pill {
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--button-border);
+    font-size: 11px;
+    cursor: pointer;
+    background: var(--button-bg);
+  }
+
+  .anim-pill.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .anim-pill span {
+    margin-left: 4px;
+    opacity: 0.7;
+    cursor: pointer;
+  }
+
+  .anim-frames-strip {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 6px;
+    border: 1px solid var(--border-soft);
+    background: rgba(0,0,0,0.15);
+    overflow-x: auto;
+    margin-bottom: 6px;
+  }
+
+  .anim-frame-thumb {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    border: 1px solid var(--button-border);
+    background: #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .anim-frame-thumb img,
+  .anim-frame-thumb canvas {
+    max-width: 100%;
+    max-height: 100%;
+    image-rendering: pixelated;
+  }
+
+  .anim-frame-thumb.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent-soft);
+  }
+
+  .anim-frame-index {
+    position: absolute;
+    bottom: 1px;
+    right: 3px;
+    font-size: 9px;
+    background: rgba(0,0,0,0.6);
+    padding: 0 2px;
+    border-radius: 3px;
+  }
+
+  .anim-controls-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    font-size: 11px;
+  }
+
+  .anim-controls-row input[type="number"] {
+    width: 60px;
+    margin-bottom: 0;
+  }
+
+  .anim-controls-row button {
+    padding: 3px 8px;
+    font-size: 11px;
+    border-radius: 6px;
+    border: 1px solid var(--button-border);
+    background: var(--button-bg);
+    color: var(--text-main);
+    cursor: pointer;
+  }
+
+  .anim-controls-row button:hover {
+    background: var(--button-bg-hover);
+  }
+
+  .anim-link-row {
+    font-size: 11px;
+    margin-top: 4px;
+  }
+
+  .anim-link-row a {
+    color: var(--accent);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .anim-link-row a:hover {
+    text-decoration: underline;
+  }
 </style>
 </head>
 
 <body>
 
-  <!-- Sidebar -->
   <div id="sidebar">
     <div class="sidebar-section">
       <h3>Objects</h3>
@@ -307,7 +466,7 @@
       </label>
       <div class="small-note">
         Right-click drag to pan • Scroll to zoom<br>
-        Double-click object to edit logic
+        Double-click object to edit logic/animations
       </div>
     </div>
 
@@ -361,15 +520,14 @@
     </div>
   </div>
 
-  <!-- Hidden file input for images -->
   <input id="fileInput" type="file" accept="image/png">
+  <input id="animFileInput" type="file" accept=".png,.gif,.piskel" multiple>
 
-  <!-- Main area -->
   <div id="main">
     <div id="topbar">
       <div id="topbar-left">
         <span id="topbar-title">Unnamed Game Editor</span>
-        <span id="topbar-version">v0.8</span>
+        <span id="topbar-version">v0.9</span>
       </div>
       <div id="topbar-right">
         <div id="themeToggle">🌙 / ☀️ Theme</div>
@@ -381,16 +539,13 @@
     </div>
   </div>
 
-  <!-- Logic modal -->
   <div id="logicModalOverlay">
     <div id="logicModal">
       <div id="logicModalHeader">
         <div id="logicModalTitle">Object Logic</div>
         <button id="logicModalClose">Close</button>
       </div>
-      <div id="logicModalBody">
-        <!-- Filled dynamically based on logicType -->
-      </div>
+      <div id="logicModalBody"></div>
     </div>
   </div>
 
@@ -402,26 +557,23 @@
   let selected = null;
 
   let dragging = false;
-  let dragMode = null; // "move", "pan", "resize"
+  let dragMode = null;
   let offsetX = 0;
   let offsetY = 0;
 
-  let resizeHandle = null; // "tl","tr","bl","br"
+  let resizeHandle = null;
   let resizeStart = null;
 
-  const TARGET_SIZE = 128; // largest side at scale 1
-  const HANDLE_SIZE = 10;  // in screen pixels
+  const TARGET_SIZE = 128;
+  const HANDLE_SIZE = 10;
   const GRID_SIZE = 16;
 
-  // camera
   let cameraX = 0;
   let cameraY = 0;
   let zoom = 1;
 
-  // time
   let lastTimestamp = performance.now();
 
-  // UI elements
   const propX = document.getElementById("propX");
   const propY = document.getElementById("propY");
   const propW = document.getElementById("propW");
@@ -436,6 +588,7 @@
   const noSelection = document.getElementById("noSelection");
 
   const fileInput = document.getElementById("fileInput");
+  const animFileInput = document.getElementById("animFileInput");
   const snapToggle = document.getElementById("snapToggle");
   const themeToggle = document.getElementById("themeToggle");
 
@@ -444,10 +597,8 @@
   const logicModalTitle = document.getElementById("logicModalTitle");
   const logicModalClose = document.getElementById("logicModalClose");
 
-  // Input state for character movement
   const keysDown = {};
 
-  // Helpers: world <-> screen
   function worldToScreen(x, y) {
     return {
       x: (x - cameraX) * zoom,
@@ -467,16 +618,14 @@
     return Math.round(value / GRID_SIZE) * GRID_SIZE;
   }
 
-  // Theme toggle
   themeToggle.addEventListener("click", () => {
     document.body.classList.toggle("light-theme");
   });
 
-  // Default logic configs
   function defaultLogicConfig(type) {
     if (type === "character") {
       return {
-        controls: "arrows",   // "arrows" or "wasd"
+        controls: "arrows",
         moveSpeed: 200,
         isPlayer: true
       };
@@ -499,22 +648,32 @@
     if (type === "projectile") {
       return {
         speed: 300,
-        direction: 0,      // degrees
+        direction: 0,
         lifetime: 1.5,
         destroyOnImpact: true,
         gravity: 0,
         bounce: false
       };
     }
-    return {}; // generic
+    return {};
   }
 
   function ensureLogicFields(obj) {
     if (!obj.logicType) obj.logicType = "generic";
     if (!obj.logicConfig) obj.logicConfig = defaultLogicConfig(obj.logicType);
+    if (!obj.animations) obj.animations = {};
+    if (!obj.currentAnimationName) obj.currentAnimationName = null;
   }
 
-  // Add a box
+  function ensureAnimationRuntimeState(anim) {
+    if (!anim) return;
+    if (typeof anim.fps !== "number" || anim.fps <= 0) anim.fps = 8;
+    if (typeof anim.loop !== "boolean") anim.loop = true;
+    if (typeof anim.currentFrameIndex !== "number") anim.currentFrameIndex = 0;
+    if (typeof anim.timeAccumulator !== "number") anim.timeAccumulator = 0;
+    if (!Array.isArray(anim.frames)) anim.frames = [];
+  }
+
   document.getElementById("addBox").onclick = () => {
     const obj = {
       renderType: "box",
@@ -524,19 +683,19 @@
       w: 80,
       h: 80,
       color: "#" + Math.floor(Math.random()*16777215).toString(16),
-      logicConfig: defaultLogicConfig("generic")
+      logicConfig: defaultLogicConfig("generic"),
+      animations: {},
+      currentAnimationName: null
     };
     objects.push(obj);
     draw();
   };
 
-  // Add image button
   document.getElementById("addImage").onclick = () => {
     fileInput.value = "";
     fileInput.click();
   };
 
-  // Handle image file selection
   fileInput.addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -566,7 +725,9 @@
           scale: 1,
           baseScale: baseScale,
           img: img,
-          logicConfig: defaultLogicConfig("generic")
+          logicConfig: defaultLogicConfig("generic"),
+          animations: {},
+          currentAnimationName: null
         };
 
         objects.push(obj);
@@ -577,7 +738,6 @@
     reader.readAsDataURL(file);
   });
 
-  // Delete selected object
   document.getElementById("deleteSelected").onclick = () => {
     deleteSelected();
   };
@@ -591,7 +751,6 @@
     }
   }
 
-  // Update properties panel + visibility
   function updateProperties() {
     if (!selected) {
       propX.value = "";
@@ -633,7 +792,6 @@
     }
   }
 
-  // When user edits properties
   propX.oninput = () => {
     if (selected) {
       selected.x = snap(Number(propX.value) || 0);
@@ -711,7 +869,6 @@
     selected.logicConfig = defaultLogicConfig(newType);
   };
 
-  // Draw everything
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -720,11 +877,23 @@
     ctx.scale(zoom, zoom);
 
     for (let obj of objects) {
-      if (obj.renderType === "box") {
-        ctx.fillStyle = obj.color || "#888";
-        ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
-      } else if (obj.renderType === "image" && obj.img) {
-        ctx.drawImage(obj.img, obj.x, obj.y, obj.w, obj.h);
+      ensureLogicFields(obj);
+
+      const anim = obj.currentAnimationName ? obj.animations[obj.currentAnimationName] : null;
+      const hasAnimFrame = anim && anim.frames && anim.frames.length > 0;
+
+      if (hasAnimFrame) {
+        const frame = anim.frames[Math.max(0, Math.min(anim.currentFrameIndex || 0, anim.frames.length - 1))];
+        if (frame) {
+          ctx.drawImage(frame, obj.x, obj.y, obj.w, obj.h);
+        }
+      } else {
+        if (obj.renderType === "box") {
+          ctx.fillStyle = obj.color || "#888";
+          ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
+        } else if (obj.renderType === "image" && obj.img) {
+          ctx.drawImage(obj.img, obj.x, obj.y, obj.w, obj.h);
+        }
       }
 
       if (obj === selected) {
@@ -814,7 +983,6 @@
     return null;
   }
 
-  // Mouse events
   canvas.addEventListener("mousedown", (e) => {
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
@@ -921,7 +1089,6 @@
     e.preventDefault();
   });
 
-  // Double-click: open logic modal
   canvas.addEventListener("dblclick", (e) => {
     const obj = pickObjectAtMouse(e);
     if (!obj) return;
@@ -932,7 +1099,6 @@
     draw();
   });
 
-  // Zoom with wheel (toward cursor)
   canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
     const rect = canvas.getBoundingClientRect();
@@ -1006,7 +1172,6 @@
     }
   }
 
-  // Logic modal
   function openLogicModal(obj) {
     ensureLogicFields(obj);
     logicModalTitle.textContent = `Logic: ${obj.logicType}`;
@@ -1248,7 +1413,313 @@
       logicModalBody.appendChild(hint);
     }
 
+    buildAnimationUI(obj);
+
     logicModalOverlay.style.display = "flex";
+  }
+
+  function buildAnimationUI(obj) {
+    ensureLogicFields(obj);
+
+    const section = document.createElement("div");
+    section.className = "anim-section";
+
+    const title = document.createElement("div");
+    title.className = "logic-section-title";
+    title.textContent = "Animations";
+    section.appendChild(title);
+
+    const headerRow = document.createElement("div");
+    headerRow.className = "anim-header-row";
+
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.placeholder = "New animation name (unique)";
+    headerRow.appendChild(nameInput);
+
+    const addBtn = document.createElement("button");
+    addBtn.textContent = "Add";
+    headerRow.appendChild(addBtn);
+
+    section.appendChild(headerRow);
+
+    const animList = document.createElement("div");
+    animList.className = "anim-list";
+    section.appendChild(animList);
+
+    const framesStrip = document.createElement("div");
+    framesStrip.className = "anim-frames-strip";
+    section.appendChild(framesStrip);
+
+    const controlsRow = document.createElement("div");
+    controlsRow.className = "anim-controls-row";
+
+    const fpsLabel = document.createElement("span");
+    fpsLabel.textContent = "FPS:";
+    controlsRow.appendChild(fpsLabel);
+
+    const fpsInput = document.createElement("input");
+    fpsInput.type = "number";
+    fpsInput.min = "1";
+    fpsInput.max = "60";
+    fpsInput.value = "8";
+    controlsRow.appendChild(fpsInput);
+
+    const loopLabel = document.createElement("label");
+    const loopCb = document.createElement("input");
+    loopCb.type = "checkbox";
+    loopCb.checked = true;
+    loopLabel.appendChild(loopCb);
+    const loopText = document.createElement("span");
+    loopText.textContent = "Loop";
+    loopLabel.appendChild(loopText);
+    controlsRow.appendChild(loopLabel);
+
+    const playBtn = document.createElement("button");
+    playBtn.textContent = "Play";
+    controlsRow.appendChild(playBtn);
+
+    const addFramesBtn = document.createElement("button");
+    addFramesBtn.textContent = "Add Frames";
+    controlsRow.appendChild(addFramesBtn);
+
+    section.appendChild(controlsRow);
+
+    const linkRow = document.createElement("div");
+    linkRow.className = "anim-link-row";
+    linkRow.innerHTML = `Don't have frames yet? Create your animation in <a href="#" id="piskelLink">Piskel</a>.`;
+    section.appendChild(linkRow);
+
+    logicModalBody.appendChild(section);
+
+    let currentAnimName = obj.currentAnimationName || null;
+    let isPlayingPreview = false;
+
+    function refreshAnimList() {
+      animList.innerHTML = "";
+      const names = Object.keys(obj.animations);
+      if (names.length === 0) {
+        const hint = document.createElement("div");
+        hint.className = "logic-hint";
+        hint.textContent = "No animations yet. Add one with a unique name.";
+        animList.appendChild(hint);
+        currentAnimName = null;
+        obj.currentAnimationName = null;
+        framesStrip.innerHTML = "";
+        return;
+      }
+
+      if (!currentAnimName || !obj.animations[currentAnimName]) {
+        currentAnimName = names[0];
+        obj.currentAnimationName = currentAnimName;
+      }
+
+      names.forEach(name => {
+        const pill = document.createElement("div");
+        pill.className = "anim-pill";
+        if (name === currentAnimName) pill.classList.add("active");
+        pill.textContent = name;
+
+        const delSpan = document.createElement("span");
+        delSpan.textContent = "✕";
+        delSpan.title = "Delete animation";
+        delSpan.onclick = (e) => {
+          e.stopPropagation();
+          delete obj.animations[name];
+          if (currentAnimName === name) {
+            currentAnimName = null;
+            obj.currentAnimationName = null;
+          }
+          refreshAnimList();
+          refreshFramesStrip();
+        };
+        pill.appendChild(delSpan);
+
+        pill.onclick = () => {
+          currentAnimName = name;
+          obj.currentAnimationName = name;
+          refreshAnimList();
+          refreshFramesStrip();
+        };
+
+        animList.appendChild(pill);
+      });
+
+      refreshFramesStrip();
+    }
+
+    function refreshFramesStrip() {
+      framesStrip.innerHTML = "";
+      if (!currentAnimName || !obj.animations[currentAnimName]) return;
+      const anim = obj.animations[currentAnimName];
+      ensureAnimationRuntimeState(anim);
+
+      fpsInput.value = anim.fps;
+      loopCb.checked = anim.loop;
+
+      anim.frames.forEach((frame, index) => {
+        const thumb = document.createElement("div");
+        thumb.className = "anim-frame-thumb";
+        if (index === anim.currentFrameIndex) thumb.classList.add("active");
+
+        const img = document.createElement("img");
+        img.src = frame instanceof HTMLCanvasElement ? frame.toDataURL() : frame.src;
+        thumb.appendChild(img);
+
+        const idxLabel = document.createElement("div");
+        idxLabel.className = "anim-frame-index";
+        idxLabel.textContent = index + 1;
+        thumb.appendChild(idxLabel);
+
+        thumb.onclick = () => {
+          anim.currentFrameIndex = index;
+          anim.timeAccumulator = 0;
+          refreshFramesStrip();
+        };
+
+        thumb.oncontextmenu = (e) => {
+          e.preventDefault();
+          anim.frames.splice(index, 1);
+          if (anim.currentFrameIndex >= anim.frames.length) {
+            anim.currentFrameIndex = Math.max(0, anim.frames.length - 1);
+          }
+          refreshFramesStrip();
+        };
+
+        framesStrip.appendChild(thumb);
+      });
+
+      if (anim.frames.length === 0) {
+        const hint = document.createElement("div");
+        hint.className = "logic-hint";
+        hint.textContent = "No frames yet. Use 'Add Frames' to import PNGs, GIFs, or .piskel.";
+        framesStrip.appendChild(hint);
+      }
+    }
+
+    addBtn.onclick = () => {
+      const name = (nameInput.value || "").trim();
+      if (!name) {
+        alert("Animation name cannot be empty.");
+        return;
+      }
+      if (obj.animations[name]) {
+        alert("Animation name must be unique for this object.");
+        return;
+      }
+      obj.animations[name] = {
+        frames: [],
+        fps: 8,
+        loop: true,
+        currentFrameIndex: 0,
+        timeAccumulator: 0
+      };
+      currentAnimName = name;
+      obj.currentAnimationName = name;
+      nameInput.value = "";
+      refreshAnimList();
+    };
+
+    fpsInput.oninput = () => {
+      if (!currentAnimName || !obj.animations[currentAnimName]) return;
+      let v = Number(fpsInput.value) || 1;
+      v = Math.max(1, Math.min(60, v));
+      obj.animations[currentAnimName].fps = v;
+    };
+
+    loopCb.onchange = () => {
+      if (!currentAnimName || !obj.animations[currentAnimName]) return;
+      obj.animations[currentAnimName].loop = loopCb.checked;
+    };
+
+    playBtn.onclick = () => {
+      isPlayingPreview = !isPlayingPreview;
+      playBtn.textContent = isPlayingPreview ? "Stop" : "Play";
+    };
+
+    addFramesBtn.onclick = () => {
+      if (!currentAnimName || !obj.animations[currentAnimName]) {
+        alert("Create or select an animation first.");
+        return;
+      }
+      animFileInput.value = "";
+      animFileInput.onchange = (e) => {
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+        const anim = obj.animations[currentAnimName];
+        files.forEach(file => {
+          const name = file.name.toLowerCase();
+          if (name.endsWith(".piskel")) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              try {
+                const data = JSON.parse(ev.target.result);
+                if (data && data.layers && data.layers[0] && data.layers[0].frames) {
+                  data.layers[0].frames.forEach(frameData => {
+                    if (frameData.chunks && frameData.chunks[0] && frameData.chunks[0].base64PNG) {
+                      const img = new Image();
+                      img.src = "data:image/png;base64," + frameData.chunks[0].base64PNG;
+                      anim.frames.push(img);
+                    }
+                  });
+                  refreshFramesStrip();
+                } else {
+                  alert("Unsupported .piskel format.");
+                }
+              } catch (err) {
+                alert("Failed to parse .piskel file.");
+              }
+            };
+            reader.readAsText(file);
+          } else {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              const img = new Image();
+              img.onload = () => {
+                anim.frames.push(img);
+                refreshFramesStrip();
+              };
+              img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      };
+      animFileInput.click();
+    };
+
+    linkRow.querySelector("#piskelLink").onclick = (e) => {
+      e.preventDefault();
+      window.open("https://www.piskelapp.com/", "_blank");
+    };
+
+    refreshAnimList();
+
+    const originalUpdate = update;
+    update = function(dt) {
+      originalUpdate(dt);
+      if (isPlayingPreview && currentAnimName && obj.animations[currentAnimName]) {
+        const anim = obj.animations[currentAnimName];
+        ensureAnimationRuntimeState(anim);
+        anim.timeAccumulator += dt;
+        const frameDuration = 1 / anim.fps;
+        while (anim.timeAccumulator >= frameDuration) {
+          anim.timeAccumulator -= frameDuration;
+          anim.currentFrameIndex++;
+          if (anim.currentFrameIndex >= anim.frames.length) {
+            if (anim.loop && anim.frames.length > 0) {
+              anim.currentFrameIndex = 0;
+            } else {
+              anim.currentFrameIndex = Math.max(0, anim.frames.length - 1);
+              isPlayingPreview = false;
+              playBtn.textContent = "Play";
+              break;
+            }
+          }
+        }
+        refreshFramesStrip();
+      }
+    };
   }
 
   logicModalClose.addEventListener("click", () => {
@@ -1261,7 +1732,6 @@
     }
   });
 
-  // Keyboard shortcuts + input state
   document.addEventListener("keydown", (e) => {
     keysDown[e.key] = true;
 
@@ -1278,6 +1748,23 @@
       const clone = JSON.parse(JSON.stringify(selected));
       if (clone.img && selected.img) {
         clone.img = selected.img;
+      }
+      if (selected.animations) {
+        clone.animations = {};
+        for (const name in selected.animations) {
+          const srcAnim = selected.animations[name];
+          const newAnim = {
+            fps: srcAnim.fps,
+            loop: srcAnim.loop,
+            currentFrameIndex: srcAnim.currentFrameIndex,
+            timeAccumulator: 0,
+            frames: []
+          };
+          srcAnim.frames.forEach(frame => {
+            newAnim.frames.push(frame);
+          });
+          clone.animations[name] = newAnim;
+        }
       }
       clone.x += 20;
       clone.y += 20;
@@ -1319,7 +1806,6 @@
     keysDown[e.key] = false;
   });
 
-  // Logic: find player character
   function getPlayerCharacter() {
     for (const obj of objects) {
       if (obj.logicType === "character" && obj.logicConfig && obj.logicConfig.isPlayer) {
@@ -1329,9 +1815,7 @@
     return null;
   }
 
-  // Logic: update loop
   function update(dt) {
-    // Character movement
     const player = getPlayerCharacter();
     if (player) {
       const cfg = player.logicConfig || {};
@@ -1360,9 +1844,10 @@
       }
     }
 
-    // Projectile movement + lifetime
     for (let i = objects.length - 1; i >= 0; i--) {
       const obj = objects[i];
+      ensureLogicFields(obj);
+
       if (obj.logicType === "projectile" && obj.logicConfig) {
         const cfg = obj.logicConfig;
         if (cfg.lifetime !== undefined) {
@@ -1385,10 +1870,30 @@
           obj.y += cfg.gravity * dt * dt;
         }
 
-        // Simple bounds kill
         if (obj.x + obj.w < -100 || obj.x > 2000 || obj.y + obj.h < -100 || obj.y > 2000) {
           objects.splice(i, 1);
           if (selected === obj) selected = null;
+        }
+      }
+
+      if (obj.animations && obj.currentAnimationName && obj.animations[obj.currentAnimationName]) {
+        const anim = obj.animations[obj.currentAnimationName];
+        ensureAnimationRuntimeState(anim);
+        if (anim.frames.length > 0) {
+          anim.timeAccumulator += dt;
+          const frameDuration = 1 / anim.fps;
+          while (anim.timeAccumulator >= frameDuration) {
+            anim.timeAccumulator -= frameDuration;
+            anim.currentFrameIndex++;
+            if (anim.currentFrameIndex >= anim.frames.length) {
+              if (anim.loop) {
+                anim.currentFrameIndex = 0;
+              } else {
+                anim.currentFrameIndex = Math.max(0, anim.frames.length - 1);
+                break;
+              }
+            }
+          }
         }
       }
     }
